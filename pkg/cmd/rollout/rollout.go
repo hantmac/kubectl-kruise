@@ -23,6 +23,7 @@ import (
 
 	kruiseappsv1alpha1 "github.com/openkruise/kruise-api/apps/v1alpha1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	"k8s.io/kubectl/pkg/util/i18n"
 	"k8s.io/kubectl/pkg/util/templates"
@@ -32,6 +33,7 @@ var Scheme = runtime.NewScheme()
 
 func init() {
 	_ = kruiseappsv1alpha1.AddToScheme(Scheme)
+	_ = clientgoscheme.AddToScheme(Scheme)
 }
 
 var (

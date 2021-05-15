@@ -21,11 +21,11 @@ import (
 
 	"github.com/spf13/cobra"
 
+	internalpolymorphichelpers "github.com/hantmac/kubectl-kruise/pkg/internal/polymorphichelpers"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/printers"
 	"k8s.io/cli-runtime/pkg/resource"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
-	"k8s.io/kubectl/pkg/polymorphichelpers"
 	"k8s.io/kubectl/pkg/scheme"
 	"k8s.io/kubectl/pkg/util/i18n"
 	"k8s.io/kubectl/pkg/util/templates"
@@ -55,7 +55,7 @@ type RolloutHistoryOptions struct {
 	Namespace        string
 	EnforceNamespace bool
 
-	HistoryViewer    polymorphichelpers.HistoryViewerFunc
+	HistoryViewer    internalpolymorphichelpers.HistoryViewerFunc
 	RESTClientGetter genericclioptions.RESTClientGetter
 
 	resource.FilenameOptions
@@ -114,7 +114,7 @@ func (o *RolloutHistoryOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, 
 		return o.PrintFlags.ToPrinter()
 	}
 
-	o.HistoryViewer = polymorphichelpers.HistoryViewerFn
+	o.HistoryViewer = internalpolymorphichelpers.HistoryViewerFn
 	o.RESTClientGetter = f
 	o.Builder = f.NewBuilder
 
