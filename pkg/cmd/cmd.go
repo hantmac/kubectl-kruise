@@ -2,23 +2,22 @@ package cmd
 
 import (
 	"flag"
-	"fmt"
+	"io"
+	"os"
+
 	krollout "github.com/hantmac/kubectl-kruise/pkg/cmd/rollout"
 	"github.com/spf13/cobra"
-	"io"
+
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/kubectl/pkg/cmd/apiresources"
 	"k8s.io/kubectl/pkg/cmd/apply"
 	"k8s.io/kubectl/pkg/cmd/attach"
-	"k8s.io/kubectl/pkg/cmd/auth"
 	"k8s.io/kubectl/pkg/cmd/autoscale"
 	"k8s.io/kubectl/pkg/cmd/certificates"
 	"k8s.io/kubectl/pkg/cmd/clusterinfo"
 	cmdconfig "k8s.io/kubectl/pkg/cmd/config"
-	"k8s.io/kubectl/pkg/cmd/cp"
 	"k8s.io/kubectl/pkg/cmd/debug"
 	"k8s.io/kubectl/pkg/cmd/describe"
 	"k8s.io/kubectl/pkg/cmd/diff"
@@ -30,7 +29,6 @@ import (
 	"k8s.io/kubectl/pkg/cmd/patch"
 	"k8s.io/kubectl/pkg/cmd/plugin"
 	"k8s.io/kubectl/pkg/cmd/portforward"
-	"k8s.io/kubectl/pkg/cmd/proxy"
 	"k8s.io/kubectl/pkg/cmd/replace"
 	"k8s.io/kubectl/pkg/cmd/scale"
 	"k8s.io/kubectl/pkg/cmd/taint"
@@ -40,8 +38,6 @@ import (
 	"k8s.io/kubectl/pkg/cmd/wait"
 	"k8s.io/kubectl/pkg/util/i18n"
 	"k8s.io/kubectl/pkg/util/templates"
-	"k8s.io/kubectl/pkg/util/term"
-	"os"
 )
 
 const (
@@ -301,7 +297,6 @@ var (
 
 // NewKubectlCommand creates the `kubectl-kruise` command and its nested children.
 func NewKubectlCommand(in io.Reader, out, err io.Writer) *cobra.Command {
-	warningHandler := rest.NewWarningWriter(err, rest.WarningWriterOptions{Deduplicate: true, Color: term.AllowsColorOutput(err)})
 	warningsAsErrors := false
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
@@ -317,23 +312,12 @@ func NewKubectlCommand(in io.Reader, out, err io.Writer) *cobra.Command {
 		// Hook before and after Run initialize and write profiles to disk,
 		// respectively.
 		PersistentPreRunE: func(*cobra.Command, []string) error {
-			rest.SetDefaultWarningHandler(warningHandler)
+			//rest.SetDefaultWarningHandler(warningHandler)
 			return initProfiling()
 		},
 		PersistentPostRunE: func(*cobra.Command, []string) error {
 			if err := flushProfiling(); err != nil {
 				return err
-			}
-			if warningsAsErrors {
-				count := warningHandler.WarningCount()
-				switch count {
-				case 0:
-					// no warnings
-				case 1:
-					return fmt.Errorf("%d warning received", count)
-				default:
-					return fmt.Errorf("%d warnings received", count)
-				}
 			}
 			return nil
 		},
@@ -372,12 +356,6 @@ func NewKubectlCommand(in io.Reader, out, err io.Writer) *cobra.Command {
 
 	ioStreams := genericclioptions.IOStreams{In: in, Out: out, ErrOut: err}
 
-	// Proxy command is incompatible with CommandHeaderRoundTripper, so
-	// clear the WrapConfigFn before running proxy command.
-	proxyCmd := proxy.NewCmdProxy(f, ioStreams)
-	proxyCmd.PreRun = func(cmd *cobra.Command, args []string) {
-		kubeConfigFlags.WrapConfigFn = nil
-	}
 	groups := templates.CommandGroups{
 		{
 			Message: "CloneSet Commands:",
@@ -407,9 +385,6 @@ func NewKubectlCommand(in io.Reader, out, err io.Writer) *cobra.Command {
 				attach.NewCmdAttach(f, ioStreams),
 				cmdexec.NewCmdExec(f, ioStreams),
 				portforward.NewCmdPortForward(f, ioStreams),
-				proxyCmd,
-				cp.NewCmdCp(f, ioStreams),
-				auth.NewCmdAuth(f, ioStreams),
 				debug.NewCmdDebug(f, ioStreams),
 			},
 		},

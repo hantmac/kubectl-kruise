@@ -23,10 +23,13 @@ import (
 	"io"
 	"text/tabwriter"
 
+	internalclient "github.com/hantmac/kubectl-kruise/pkg/client"
+	"github.com/hantmac/kubectl-kruise/pkg/fetcher"
+	internalapps "github.com/hantmac/kubectl-kruise/pkg/internal/apps"
+	kruiseappsv1alpha1 "github.com/openkruise/kruise-api/apps/v1alpha1"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-
-	internalapps "github.com/hantmac/kubectl-kruise/pkg/internal/apps"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -36,9 +39,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/client-go/kubernetes"
 	clientappsv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
+	"k8s.io/klog"
 	"k8s.io/kubectl/pkg/describe"
 	deploymentutil "k8s.io/kubectl/pkg/util/deployment"
 	sliceutil "k8s.io/kubectl/pkg/util/slice"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -52,6 +57,7 @@ type HistoryViewer interface {
 
 type HistoryVisitor struct {
 	clientset kubernetes.Interface
+	c         client.Reader
 	result    HistoryViewer
 }
 
@@ -99,17 +105,31 @@ type DeploymentHistoryViewer struct {
 }
 
 type CloneSetHistoryViewer struct {
-	c kubernetes.Interface
+	c client.Reader
+	k kubernetes.Interface
 }
 
-func (v *HistoryVisitor) VisitCloneSet(elem internalapps.GroupKindElement) {
-	v.result = &CloneSetHistoryViewer{v.clientset}
+func (v *HistoryVisitor) VisitCloneSet(kind internalapps.GroupKindElement) {
+	mgr := internalclient.NewManager()
+	v.c = mgr.GetAPIReader()
+	v.result = &CloneSetHistoryViewer{v.c, v.clientset}
 }
 
 // TODO impl ViewHistory func for CloneSet
 func (h *CloneSetHistoryViewer) ViewHistory(namespace, name string, revision int64) (string, error) {
 
-	return "this is the CloneSet rollout history", nil
+	cs, history, err := h.clonesetHistory(h.k.AppsV1(), namespace, name)
+	if err != nil {
+		return "", err
+	}
+
+	return printHistory(history, revision, func(history *appsv1.ControllerRevision) (*corev1.PodTemplateSpec, error) {
+		stsOfHistory, err := applyCloneSetHistory(cs, history)
+		if err != nil {
+			return nil, err
+		}
+		return &stsOfHistory.Spec.Template, err
+	})
 }
 
 // ViewHistory returns a revision-to-replicaset map as the revision history of a deployment
@@ -339,6 +359,30 @@ func daemonSetHistory(
 	return ds, history, nil
 }
 
+func (h *CloneSetHistoryViewer) clonesetHistory(
+	apps clientappsv1.AppsV1Interface,
+	namespace, name string) (*kruiseappsv1alpha1.CloneSet, []*appsv1.ControllerRevision, error) {
+	cs, found, err := fetcher.GetCloneSetInCache(namespace, name, h.c)
+	if err != nil || !found {
+		klog.Error(err)
+		return nil, nil, fmt.Errorf("failed to retrieve CloneSet %s: %s", name, err.Error())
+	}
+	selector, err := metav1.LabelSelectorAsSelector(cs.Spec.Selector)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create selector for StatefulSet %s: %s", name, err.Error())
+	}
+	accessor, err := meta.Accessor(cs)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to obtain accessor for StatefulSet %s: %s", name, err.Error())
+	}
+	history, err := controlledHistoryV1(apps, namespace, selector, accessor)
+	if err != nil {
+		return nil, nil, fmt.Errorf("unable to find history controlled by StatefulSet %s: %v", name, err)
+	}
+
+	return cs, history, nil
+}
+
 // statefulSetHistory returns the StatefulSet named name in namespace and all ControllerRevisions in its history.
 func statefulSetHistory(
 	apps clientappsv1.AppsV1Interface,
@@ -396,6 +440,28 @@ func applyStatefulSetHistory(sts *appsv1.StatefulSet, history *appsv1.Controller
 		return nil, err
 	}
 	return result, nil
+}
+
+// applyCloneSetHistory returns a specific revision of CloneSet by applying the given history to a copy of the given CloneSet
+func applyCloneSetHistory(cs *kruiseappsv1alpha1.CloneSet,
+	history *appsv1.ControllerRevision) (*kruiseappsv1alpha1.CloneSet, error) {
+	csBytes, err := json.Marshal(cs)
+	if err != nil {
+		return nil, err
+	}
+	patched, err := strategicpatch.StrategicMergePatch(csBytes, history.Data.Raw, cs)
+
+	if err != nil {
+		return nil, err
+	}
+	result := &kruiseappsv1alpha1.CloneSet{}
+
+	err = json.Unmarshal(patched, result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+
 }
 
 // TODO: copied here until this becomes a describer

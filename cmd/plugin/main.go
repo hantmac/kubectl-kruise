@@ -1,9 +1,10 @@
 package main
 
 import (
+	"os"
+
 	"github.com/hantmac/kubectl-kruise/pkg/cmd"
 	"github.com/spf13/pflag"
-	"os"
 )
 
 func main() {

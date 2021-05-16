@@ -20,7 +20,6 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/printers"
 	"k8s.io/cli-runtime/pkg/resource"
@@ -51,8 +50,8 @@ type UndoOptions struct {
 }
 
 var (
-	undoLong = templates.LongDesc(i18n.T(`
-		Rollback to a previous rollout.`))
+	undoLong = templates.LongDesc(`
+		Rollback to a previous rollout.`)
 
 	undoExample = templates.Examples(`
 		# Rollback to the previous deployment
@@ -68,7 +67,7 @@ var (
 // NewRolloutUndoOptions returns an initialized UndoOptions instance
 func NewRolloutUndoOptions(streams genericclioptions.IOStreams) *UndoOptions {
 	return &UndoOptions{
-		PrintFlags: genericclioptions.NewPrintFlags("rolled back").WithTypeSetter(Scheme),
+		PrintFlags: genericclioptions.NewPrintFlags("rolled back").WithTypeSetter(scheme.Scheme),
 		IOStreams:  streams,
 		ToRevision: int64(0),
 	}
@@ -102,7 +101,7 @@ func NewCmdRolloutUndo(f cmdutil.Factory, streams genericclioptions.IOStreams) *
 	return cmd
 }
 
-// Complete completes all the required options
+// Complete completes al the required options
 func (o *UndoOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args []string) error {
 	o.Resources = args
 	var err error
@@ -114,7 +113,11 @@ func (o *UndoOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args []str
 	if err != nil {
 		return err
 	}
-	o.DryRunVerifier = resource.NewDryRunVerifier(dynamicClient, f.OpenAPIGetter())
+	discoveryClient, err := f.ToDiscoveryClient()
+	if err != nil {
+		return err
+	}
+	o.DryRunVerifier = resource.NewDryRunVerifier(dynamicClient, discoveryClient)
 
 	if o.Namespace, o.EnforceNamespace, err = f.ToRawKubeConfigLoader().Namespace(); err != nil {
 		return err
@@ -142,7 +145,7 @@ func (o *UndoOptions) Validate() error {
 // RunUndo performs the execution of 'rollout undo' sub command
 func (o *UndoOptions) RunUndo() error {
 	r := o.Builder().
-		WithScheme(Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
+		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
 		NamespaceParam(o.Namespace).DefaultNamespace().
 		FilenameParam(o.EnforceNamespace, &o.FilenameOptions).
 		ResourceTypeOrNameArgs(true, o.Resources...).

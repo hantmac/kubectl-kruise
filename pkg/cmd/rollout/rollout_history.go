@@ -19,9 +19,9 @@ package rollout
 import (
 	"fmt"
 
+	internalpolymorphichelpers "github.com/hantmac/kubectl-kruise/pkg/internal/polymorphichelpers"
 	"github.com/spf13/cobra"
 
-	internalpolymorphichelpers "github.com/hantmac/kubectl-kruise/pkg/internal/polymorphichelpers"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/printers"
 	"k8s.io/cli-runtime/pkg/resource"
