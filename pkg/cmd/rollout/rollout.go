@@ -19,30 +19,21 @@ limitations under the License.
 import (
 	"github.com/lithammer/dedent"
 	"github.com/spf13/cobra"
-	"k8s.io/apimachinery/pkg/runtime"
-
-	kruiseappsv1alpha1 "github.com/openkruise/kruise-api/apps/v1alpha1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	"k8s.io/kubectl/pkg/util/i18n"
 	"k8s.io/kubectl/pkg/util/templates"
 )
 
-var Scheme = runtime.NewScheme()
-
-func init() {
-	_ = kruiseappsv1alpha1.AddToScheme(Scheme)
-	_ = clientgoscheme.AddToScheme(Scheme)
-}
+//var Scheme = runtime.NewScheme()
 
 var (
 	rolloutLong = templates.LongDesc(i18n.T(`
 		Manage the rollout of a resource.`) + rolloutValidResources)
 
 	rolloutExample = templates.Examples(`
-		# Rollback to the previous deployment
-		kubectl rollout undo deployment/abc
+		# Rollback to the previous cloneset
+		kubectl rollout undo cloneset/abc
 
 		# Check the rollout status of a daemonset
 		kubectl rollout status daemonset/foo`)

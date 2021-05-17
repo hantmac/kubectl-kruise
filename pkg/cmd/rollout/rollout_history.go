@@ -18,6 +18,7 @@ package rollout
 
 import (
 	"fmt"
+	internalclient "github.com/hantmac/kubectl-kruise/pkg/client"
 
 	internalpolymorphichelpers "github.com/hantmac/kubectl-kruise/pkg/internal/polymorphichelpers"
 	"github.com/spf13/cobra"
@@ -36,8 +37,8 @@ var (
 		View previous rollout revisions and configurations.`))
 
 	historyExample = templates.Examples(`
-		# View the rollout history of a deployment
-		kubectl rollout history deployment/abc
+		# View the rollout history of a cloneset
+		kubectl rollout history cloneset/abc
 
 		# View the details of daemonset revision 3
 		kubectl rollout history daemonset/abc --revision=3`)
@@ -65,7 +66,7 @@ type RolloutHistoryOptions struct {
 // NewRolloutHistoryOptions returns an initialized RolloutHistoryOptions instance
 func NewRolloutHistoryOptions(streams genericclioptions.IOStreams) *RolloutHistoryOptions {
 	return &RolloutHistoryOptions{
-		PrintFlags: genericclioptions.NewPrintFlags("").WithTypeSetter(Scheme),
+		PrintFlags: genericclioptions.NewPrintFlags("").WithTypeSetter(internalclient.Scheme),
 		IOStreams:  streams,
 	}
 }
@@ -137,7 +138,7 @@ func (o *RolloutHistoryOptions) Validate() error {
 func (o *RolloutHistoryOptions) Run() error {
 
 	r := o.Builder().
-		WithScheme(Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
+		WithScheme(internalclient.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
 		NamespaceParam(o.Namespace).DefaultNamespace().
 		FilenameParam(o.EnforceNamespace, &o.FilenameOptions).
 		ResourceTypeOrNameArgs(true, o.Resources...).

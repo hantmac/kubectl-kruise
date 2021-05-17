@@ -118,7 +118,7 @@ func (v *HistoryVisitor) VisitCloneSet(kind internalapps.GroupKindElement) {
 // TODO impl ViewHistory func for CloneSet
 func (h *CloneSetHistoryViewer) ViewHistory(namespace, name string, revision int64) (string, error) {
 
-	cs, history, err := h.clonesetHistory(h.k.AppsV1(), namespace, name)
+	cs, history, err := clonesetHistory(h.k.AppsV1(), h.c, namespace, name)
 	if err != nil {
 		return "", err
 	}
@@ -359,10 +359,10 @@ func daemonSetHistory(
 	return ds, history, nil
 }
 
-func (h *CloneSetHistoryViewer) clonesetHistory(
-	apps clientappsv1.AppsV1Interface,
+func clonesetHistory(
+	apps clientappsv1.AppsV1Interface, cr client.Reader,
 	namespace, name string) (*kruiseappsv1alpha1.CloneSet, []*appsv1.ControllerRevision, error) {
-	cs, found, err := fetcher.GetCloneSetInCache(namespace, name, h.c)
+	cs, found, err := fetcher.GetCloneSetInCache(namespace, name, cr)
 	if err != nil || !found {
 		klog.Error(err)
 		return nil, nil, fmt.Errorf("failed to retrieve CloneSet %s: %s", name, err.Error())

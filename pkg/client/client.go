@@ -1,29 +1,29 @@
 package client
 
 import (
+	kruiseappsv1alpha1 "github.com/openkruise/kruise-api/apps/v1alpha1"
+	"k8s.io/kubectl/pkg/scheme"
 	"sync"
 
-	kruiseappsv1alpha1 "github.com/openkruise/kruise-api/apps/v1alpha1"
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 var managerOnce sync.Once
 var mgr ctrl.Manager
-var scheme = runtime.NewScheme()
+var Scheme = scheme.Scheme
 
 func init() {
-	_ = clientgoscheme.AddToScheme(scheme)
-	_ = kruiseappsv1alpha1.AddToScheme(scheme)
+	_ = clientgoscheme.AddToScheme(Scheme)
+	_ = kruiseappsv1alpha1.AddToScheme(Scheme)
 }
 
 func NewManager() ctrl.Manager {
 	managerOnce.Do(func() {
 		var err error
 		mgr, err = ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-			Scheme:             scheme,
+			Scheme:             Scheme,
 			MetricsBindAddress: "0",
 		})
 		if err != nil {
