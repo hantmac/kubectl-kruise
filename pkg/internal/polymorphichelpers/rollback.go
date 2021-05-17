@@ -20,6 +20,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	internalclient "github.com/hantmac/kubectl-kruise/pkg/client"
+	internalapps "github.com/hantmac/kubectl-kruise/pkg/internal/apps"
+	kruiseappsv1alpha1 "github.com/openkruise/kruise-api/apps/v1alpha1"
 	"sort"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -33,10 +36,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/kubectl/pkg/apps"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	"k8s.io/kubectl/pkg/scheme"
 	deploymentutil "k8s.io/kubectl/pkg/util/deployment"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -51,30 +54,38 @@ type Rollbacker interface {
 
 type RollbackVisitor struct {
 	clientset kubernetes.Interface
+	cr        client.Reader
 	result    Rollbacker
 }
 
-func (v *RollbackVisitor) VisitDeployment(elem apps.GroupKindElement) {
+func (v *RollbackVisitor) VisitDeployment(elem internalapps.GroupKindElement) {
 	v.result = &DeploymentRollbacker{v.clientset}
 }
 
-func (v *RollbackVisitor) VisitStatefulSet(kind apps.GroupKindElement) {
+func (v *RollbackVisitor) VisitStatefulSet(kind internalapps.GroupKindElement) {
 	v.result = &StatefulSetRollbacker{v.clientset}
 }
 
-func (v *RollbackVisitor) VisitDaemonSet(kind apps.GroupKindElement) {
+func (v *RollbackVisitor) VisitDaemonSet(kind internalapps.GroupKindElement) {
 	v.result = &DaemonSetRollbacker{v.clientset}
 }
 
-func (v *RollbackVisitor) VisitJob(kind apps.GroupKindElement)                   {}
-func (v *RollbackVisitor) VisitPod(kind apps.GroupKindElement)                   {}
-func (v *RollbackVisitor) VisitReplicaSet(kind apps.GroupKindElement)            {}
-func (v *RollbackVisitor) VisitReplicationController(kind apps.GroupKindElement) {}
-func (v *RollbackVisitor) VisitCronJob(kind apps.GroupKindElement)               {}
+func (v *RollbackVisitor) VisitCloneSet(kind internalapps.GroupKindElement) {
+	mgr := internalclient.NewManager()
+	cr := mgr.GetAPIReader()
+	c := mgr.GetClient()
+	v.result = &CloneSetRollbacker{cr: cr, c: c, k: v.clientset}
+}
+
+func (v *RollbackVisitor) VisitJob(kind internalapps.GroupKindElement)                   {}
+func (v *RollbackVisitor) VisitPod(kind internalapps.GroupKindElement)                   {}
+func (v *RollbackVisitor) VisitReplicaSet(kind internalapps.GroupKindElement)            {}
+func (v *RollbackVisitor) VisitReplicationController(kind internalapps.GroupKindElement) {}
+func (v *RollbackVisitor) VisitCronJob(kind internalapps.GroupKindElement)               {}
 
 // RollbackerFor returns an implementation of Rollbacker interface for the given schema kind
 func RollbackerFor(kind schema.GroupKind, c kubernetes.Interface) (Rollbacker, error) {
-	elem := apps.GroupKindElement(kind)
+	elem := internalapps.GroupKindElement(kind)
 	visitor := &RollbackVisitor{
 		clientset: c,
 	}
@@ -401,6 +412,68 @@ func (r *StatefulSetRollbacker) Rollback(obj runtime.Object, updatedAnnotations 
 	return rollbackSuccess, nil
 }
 
+type CloneSetRollbacker struct {
+	cr client.Reader
+	c  client.Client
+	k  kubernetes.Interface
+}
+
+func (r *CloneSetRollbacker) Rollback(obj runtime.Object,
+	updatedAnnotations map[string]string,
+	toRevision int64,
+	dryRunStrategy cmdutil.DryRunStrategy) (string, error) {
+
+	if toRevision < 0 {
+		return "", revisionNotFoundErr(toRevision)
+	}
+	accessor, err := meta.Accessor(obj)
+	if err != nil {
+		return "", fmt.Errorf("failed to create accessor for kind %v: %s", obj.GetObjectKind(), err.Error())
+	}
+	cs, history, err := clonesetHistory(r.k.AppsV1(), r.cr, accessor.GetNamespace(), accessor.GetName())
+	if err != nil {
+		return "", err
+	}
+	if toRevision == 0 && len(history) <= 1 {
+		return "", fmt.Errorf("no last revision to roll back to")
+	}
+	toHistory := findHistory(toRevision, history)
+	if toHistory == nil {
+		return "", revisionNotFoundErr(toRevision)
+	}
+
+	if dryRunStrategy == cmdutil.DryRunClient {
+		appliedSS, err := applyCloneSetRevision(cs, toHistory)
+		if err != nil {
+			return "", err
+		}
+		return printPodTemplate(&appliedSS.Spec.Template)
+	}
+
+	// Skip if the revision already matches current CloneSet
+	done, err := cloneSetMatch(cs, toHistory)
+	if err != nil {
+		return "", err
+	}
+	if done {
+		return fmt.Sprintf("%s (current template already matches revision %d)", rollbackSkipped, toRevision), nil
+	}
+
+	// Restore revision
+	if dryRunStrategy == cmdutil.DryRunServer {
+		if err = r.c.Patch(context.TODO(), cs, client.RawPatch(types.MergePatchType,
+			toHistory.Data.Raw), client.DryRunAll); err != nil {
+			return "", fmt.Errorf("failed restoring revision %d: %v", toRevision, err)
+		}
+	}
+	if err = r.c.Patch(context.TODO(), cs, client.RawPatch(types.MergePatchType,
+		toHistory.Data.Raw)); err != nil {
+		return "", fmt.Errorf("failed restoring revision %d: %v", toRevision, err)
+	}
+
+	return rollbackSuccess, nil
+}
+
 var appsCodec = scheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion)
 
 // applyRevision returns a new StatefulSet constructed by restoring the state in revision to set. If the returned error
@@ -418,9 +491,36 @@ func applyRevision(set *appsv1.StatefulSet, revision *appsv1.ControllerRevision)
 	return result, nil
 }
 
+var kruiseAppsCodec = scheme.Codecs.LegacyCodec(kruiseappsv1alpha1.SchemeGroupVersion)
+
+// applyCloneSetRevision returns a new CloneSet constructed by restoring the state in revision to set. If the returned error
+// is nil, the returned CloneSet is valid.
+func applyCloneSetRevision(cs *kruiseappsv1alpha1.CloneSet,
+	revision *appsv1.ControllerRevision) (*kruiseappsv1alpha1.CloneSet, error) {
+	patched, err := strategicpatch.StrategicMergePatch([]byte(runtime.EncodeOrDie(kruiseAppsCodec, cs)), revision.Data.Raw, cs)
+	if err != nil {
+		return nil, err
+	}
+	result := &kruiseappsv1alpha1.CloneSet{}
+	err = json.Unmarshal(patched, result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 // statefulsetMatch check if the given StatefulSet's template matches the template stored in the given history.
 func statefulsetMatch(ss *appsv1.StatefulSet, history *appsv1.ControllerRevision) (bool, error) {
 	patch, err := getStatefulSetPatch(ss)
+	if err != nil {
+		return false, err
+	}
+	return bytes.Equal(patch, history.Data.Raw), nil
+}
+
+// cloneSetMatch check if the given CloneSet's template matches the template stored in the given history.
+func cloneSetMatch(cs *kruiseappsv1alpha1.CloneSet, history *appsv1.ControllerRevision) (bool, error) {
+	patch, err := getCloneSetPatch(cs)
 	if err != nil {
 		return false, err
 	}
@@ -449,6 +549,30 @@ func getStatefulSetPatch(set *appsv1.StatefulSet) ([]byte, error) {
 	objCopy["spec"] = specCopy
 	patch, err := json.Marshal(objCopy)
 	return patch, err
+}
+
+// getCloneSetPatch returns a strategic merge patch that can be applied to restore a CloneSet to a
+// previous version.
+func getCloneSetPatch(cs *kruiseappsv1alpha1.CloneSet) ([]byte, error) {
+	str, err := runtime.Encode(kruiseAppsCodec, cs)
+	if err != nil {
+		return nil, err
+	}
+	var raw map[string]interface{}
+	if err := json.Unmarshal([]byte(str), &raw); err != nil {
+		return nil, err
+	}
+
+	objCopy := make(map[string]interface{})
+	specCopy := make(map[string]interface{})
+	spec := raw["spec"].(map[string]interface{})
+	template := spec["template"].(map[string]interface{})
+	specCopy["template"] = template
+	template["$patch"] = "replace"
+	objCopy["spec"] = specCopy
+	patch, err := json.Marshal(objCopy)
+	return patch, err
+
 }
 
 // findHistory returns a controllerrevision of a specific revision from the given controllerrevisions.

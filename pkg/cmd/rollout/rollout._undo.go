@@ -18,13 +18,14 @@ package rollout
 
 import (
 	"fmt"
-
+	internalclient "github.com/hantmac/kubectl-kruise/pkg/client"
+	internalpolymorphichelpers "github.com/hantmac/kubectl-kruise/pkg/internal/polymorphichelpers"
 	"github.com/spf13/cobra"
+
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/printers"
 	"k8s.io/cli-runtime/pkg/resource"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
-	"k8s.io/kubectl/pkg/polymorphichelpers"
 	"k8s.io/kubectl/pkg/scheme"
 	"k8s.io/kubectl/pkg/util/i18n"
 	"k8s.io/kubectl/pkg/util/templates"
@@ -54,8 +55,8 @@ var (
 		Rollback to a previous rollout.`)
 
 	undoExample = templates.Examples(`
-		# Rollback to the previous deployment
-		kubectl rollout undo deployment/abc
+		# Rollback to the previous cloneset
+		kubectl rollout undo cloneset/abc
 
 		# Rollback to daemonset revision 3
 		kubectl rollout undo daemonset/abc --to-revision=3
@@ -67,7 +68,7 @@ var (
 // NewRolloutUndoOptions returns an initialized UndoOptions instance
 func NewRolloutUndoOptions(streams genericclioptions.IOStreams) *UndoOptions {
 	return &UndoOptions{
-		PrintFlags: genericclioptions.NewPrintFlags("rolled back").WithTypeSetter(scheme.Scheme),
+		PrintFlags: genericclioptions.NewPrintFlags("rolled back").WithTypeSetter(internalclient.Scheme),
 		IOStreams:  streams,
 		ToRevision: int64(0),
 	}
@@ -145,7 +146,7 @@ func (o *UndoOptions) Validate() error {
 // RunUndo performs the execution of 'rollout undo' sub command
 func (o *UndoOptions) RunUndo() error {
 	r := o.Builder().
-		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
+		WithScheme(internalclient.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
 		NamespaceParam(o.Namespace).DefaultNamespace().
 		FilenameParam(o.EnforceNamespace, &o.FilenameOptions).
 		ResourceTypeOrNameArgs(true, o.Resources...).
@@ -161,7 +162,7 @@ func (o *UndoOptions) RunUndo() error {
 		if err != nil {
 			return err
 		}
-		rollbacker, err := polymorphichelpers.RollbackerFn(o.RESTClientGetter, info.ResourceMapping())
+		rollbacker, err := internalpolymorphichelpers.RollbackerFn(o.RESTClientGetter, info.ResourceMapping())
 		if err != nil {
 			return err
 		}
