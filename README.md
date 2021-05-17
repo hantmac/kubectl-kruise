@@ -20,7 +20,7 @@ By now the `rollout undo`, `rollout history` has been developed.
 ![](https://tva1.sinaimg.cn/large/008i3skNgy1gqlonz4irxj31h20ro41z.jpg)
 
 ### Development progress
-#### rollout
+#### rollout for CloneSet
    * [x]  undo
    * [x] history
    * [ ] status
