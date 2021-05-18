@@ -15,15 +15,15 @@ make build && cp kubectl-kruise /usr/local/bin
 ```
 
 Then you can operate Openkruise resource by `kubectl-kruise`.
-By now the `rollout undo`, `rollout history` has been developed.
+By now the `rollout undo`, `rollout status`, `rollout history` has been developed.
 
-![](https://tva1.sinaimg.cn/large/008i3skNgy1gqlonz4irxj31h20ro41z.jpg)
+![](https://tva1.sinaimg.cn/large/008i3skNgy1gqmmcx5nlqj31eo0je420.jpg)
 
 ### Development progress
-#### rollout for CloneSet
+#### rollout for CloneSet workload
    * [x]  undo
    * [x] history
-   * [ ] status
+   * [x] status
    * [ ] pause
    * [ ] resume
    * [ ] restart

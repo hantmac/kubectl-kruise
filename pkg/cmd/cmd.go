@@ -304,7 +304,7 @@ func NewKubectlCommand(in io.Reader, out, err io.Writer) *cobra.Command {
 		Short:   i18n.T("kubectl-kruise controls the OpenKruise manager"),
 		Aliases: []string{"kk"},
 		Long: templates.LongDesc(`
-      kubectl-kruise controls the  OpenKruise manager.
+      kubectl-kruise controls the OpenKruise manager.
 
       Find more information at:
             https://openkruise.io/en-us/docs/what_is_openkruise.html`),
