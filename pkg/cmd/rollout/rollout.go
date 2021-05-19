@@ -61,8 +61,8 @@ func NewCmdRollout(f cmdutil.Factory, streams genericclioptions.IOStreams) *cobr
 	}
 	// subcommands
 	cmd.AddCommand(NewCmdRolloutHistory(f, streams))
-	//cmd.AddCommand(NewCmdRolloutPause(f, streams))
-	//cmd.AddCommand(NewCmdRolloutResume(f, streams))
+	cmd.AddCommand(NewCmdRolloutPause(f, streams))
+	cmd.AddCommand(NewCmdRolloutResume(f, streams))
 	cmd.AddCommand(NewCmdRolloutUndo(f, streams))
 	cmd.AddCommand(NewCmdRolloutStatus(f, streams))
 	//cmd.AddCommand(NewCmdRolloutRestart(f, streams))

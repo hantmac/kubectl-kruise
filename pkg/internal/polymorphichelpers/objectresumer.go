@@ -19,6 +19,7 @@ package polymorphichelpers
 import (
 	"errors"
 	"fmt"
+	kruiseappsv1alpha1 "github.com/openkruise/kruise-api/apps/v1alpha1"
 
 	appsv1 "k8s.io/api/apps/v1"
 	appsv1beta1 "k8s.io/api/apps/v1beta1"
@@ -57,6 +58,12 @@ func defaultObjectResumer(obj runtime.Object) ([]byte, error) {
 		}
 		obj.Spec.Paused = false
 		return runtime.Encode(scheme.Codecs.LegacyCodec(appsv1beta1.SchemeGroupVersion), obj)
+	case *kruiseappsv1alpha1.CloneSet:
+		if !obj.Spec.UpdateStrategy.Paused {
+			return nil, errors.New("is not paused")
+		}
+		obj.Spec.UpdateStrategy.Paused = true
+		return runtime.Encode(scheme.Codecs.LegacyCodec(kruiseappsv1alpha1.SchemeGroupVersion), obj)
 
 	default:
 		return nil, fmt.Errorf("resuming is not supported")
