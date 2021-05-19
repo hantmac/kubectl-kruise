@@ -18,6 +18,7 @@ package polymorphichelpers
 
 import (
 	"fmt"
+	kruiseappsv1alpha1 "github.com/openkruise/kruise-api/apps/v1alpha1"
 
 	appsv1 "k8s.io/api/apps/v1"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
@@ -42,6 +43,8 @@ func StatusViewerFor(kind schema.GroupKind) (StatusViewer, error) {
 		return &DaemonSetStatusViewer{}, nil
 	case appsv1.SchemeGroupVersion.WithKind("StatefulSet").GroupKind():
 		return &StatefulSetStatusViewer{}, nil
+	case kruiseappsv1alpha1.SchemeGroupVersion.WithKind("CloneSet").GroupKind():
+		return &CloneSetStatusViewer{}, nil
 	}
 	return nil, fmt.Errorf("no status viewer has been implemented for %v", kind)
 }
@@ -54,6 +57,9 @@ type DaemonSetStatusViewer struct{}
 
 // StatefulSetStatusViewer implements the StatusViewer interface.
 type StatefulSetStatusViewer struct{}
+
+// CloneSetViewer implements the StatusViewer interface
+type CloneSetStatusViewer struct{}
 
 // Status returns a message describing deployment status, and a bool value indicating if the status is considered done.
 func (s *DeploymentStatusViewer) Status(obj runtime.Unstructured, revision int64) (string, bool, error) {
@@ -149,4 +155,34 @@ func (s *StatefulSetStatusViewer) Status(obj runtime.Unstructured, revision int6
 	}
 	return fmt.Sprintf("statefulset rolling update complete %d pods at revision %s...\n", sts.Status.CurrentReplicas, sts.Status.CurrentRevision), true, nil
 
+}
+
+// Status returns a message describing cloneset status, and a bool value indicating if the status is considered done.
+func (s *CloneSetStatusViewer) Status(obj runtime.Unstructured, revision int64) (string, bool, error) {
+	cs := &kruiseappsv1alpha1.CloneSet{}
+	err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), cs)
+	if err != nil {
+		return "", false, fmt.Errorf("failed to convert %T to %T: %v", obj, cs, err)
+	}
+
+	// check InPlaceOnly and InPlacePossible UpdateStrategy
+	if cs.Spec.UpdateStrategy.Type == kruiseappsv1alpha1.InPlaceOnlyCloneSetUpdateStrategyType ||
+		cs.Spec.UpdateStrategy.Type == kruiseappsv1alpha1.InPlaceIfPossibleCloneSetUpdateStrategyType {
+		if cs.Spec.Replicas != nil && cs.Spec.UpdateStrategy.Partition != nil {
+			if cs.Status.UpdatedReplicas < (*cs.Spec.Replicas - cs.Spec.UpdateStrategy.Partition.IntVal) {
+				return fmt.Sprintf("Waiting for partitioned roll out to finish: %d out of %d new pods have been updated...\n",
+					cs.Status.UpdatedReplicas, *cs.Spec.Replicas-cs.Spec.UpdateStrategy.Partition.IntVal), false, nil
+
+			}
+		}
+	}
+
+	if cs.Status.ObservedGeneration == 0 || cs.Generation > cs.Status.ObservedGeneration {
+		return "Waiting for CloneSet spec update to be observed...\n", false, nil
+	}
+	if cs.Spec.Replicas != nil && cs.Status.ReadyReplicas < *cs.Spec.Replicas {
+		return fmt.Sprintf("Waiting for %d pods to be ready...\n", *cs.Spec.Replicas-cs.Status.ReadyReplicas), false, nil
+	}
+
+	return fmt.Sprintf("CloneSet rolling update complete %d pods at revision %s...\n", cs.Status.AvailableReplicas, cs.Status.UpdateRevision), true, nil
 }

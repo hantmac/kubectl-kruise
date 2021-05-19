@@ -38,10 +38,10 @@ var (
 
 	historyExample = templates.Examples(`
 		# View the rollout history of a cloneset
-		kubectl rollout history cloneset/abc
+		kubectl-kruise rollout history cloneset/abc
 
 		# View the details of daemonset revision 3
-		kubectl rollout history daemonset/abc --revision=3`)
+		kubectl-kruise rollout history daemonset/abc --revision=3`)
 )
 
 // RolloutHistoryOptions holds the options for 'rollout history' sub command

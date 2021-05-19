@@ -33,17 +33,19 @@ var (
 
 	rolloutExample = templates.Examples(`
 		# Rollback to the previous cloneset
-		kubectl rollout undo cloneset/abc
+		kubectl-kruise rollout undo cloneset/abc
 
 		# Check the rollout status of a daemonset
-		kubectl rollout status daemonset/foo`)
+		kubectl-kruise rollout status daemonset/foo`)
 
 	rolloutValidResources = dedent.Dedent(`
+
 		Valid resource types include:
 
-		   * deployments
-		   * daemonsets
-		   * statefulsets
+			* deployments
+			* daemonsets
+			* statefulsets
+			* clonesets
 		`)
 )
 
@@ -62,7 +64,7 @@ func NewCmdRollout(f cmdutil.Factory, streams genericclioptions.IOStreams) *cobr
 	//cmd.AddCommand(NewCmdRolloutPause(f, streams))
 	//cmd.AddCommand(NewCmdRolloutResume(f, streams))
 	cmd.AddCommand(NewCmdRolloutUndo(f, streams))
-	//cmd.AddCommand(NewCmdRolloutStatus(f, streams))
+	cmd.AddCommand(NewCmdRolloutStatus(f, streams))
 	//cmd.AddCommand(NewCmdRolloutRestart(f, streams))
 
 	return cmd
