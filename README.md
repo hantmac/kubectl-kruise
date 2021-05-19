@@ -24,8 +24,8 @@ By now the `rollout undo`, `rollout status`, `rollout history` has been develope
    * [x]  undo
    * [x] history
    * [x] status
-   * [ ] pause
-   * [ ] resume
+   * [x] pause
+   * [x] resume
    * [ ] restart
    
 ### Contributing
