@@ -19,14 +19,32 @@ By now the `rollout undo`, `rollout status`, `rollout history` has been develope
 
 ![](https://tva1.sinaimg.cn/large/008i3skNgy1gqmmcx5nlqj31eo0je420.jpg)
 
-### Development progress
-#### rollout for CloneSet workload
-   * [x]  undo
+### TODO
+#### kubectl kruise rollout for CloneSet workload
+   * [x] undo
    * [x] history
    * [x] status
    * [ ] pause
    * [ ] resume
    * [ ] restart
    
+#### kubectl kruise rollout for Advanced StatefulSet
+   * [ ]  undo
+   * [ ] history
+   * [ ] status
+   * [ ] pause
+   * [ ] resume
+   * [ ] restart
+   
+#### kubectl kruise set SUBCOMMAND [options]
+   * [ ] kubectl kruise set image 
+   * [ ] kubectl kruise set env
+   
+#### kubectl kruise autoscale SUBCOMMAND [options]
+   * [ ] kubectl kruise autoscale 
+ 
+#### kubectl kruise run 
+   * [ ] kubectl kruise run NAME --image=image [--env="key=value"] [--port=port] [--dry-run=server | client | none] [--overrides=inline-json] [flags]
+  
 ### Contributing
 We encourage you to help out by reporting issues, improving documentation, fixing bugs, or adding new features. 
