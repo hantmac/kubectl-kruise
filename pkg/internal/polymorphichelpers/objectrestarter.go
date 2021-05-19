@@ -19,6 +19,7 @@ package polymorphichelpers
 import (
 	"errors"
 	"fmt"
+	kruiseappsv1alpha1 "github.com/openkruise/kruise-api/apps/v1alpha1"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -112,6 +113,15 @@ func defaultObjectRestarter(obj runtime.Object) ([]byte, error) {
 		}
 		obj.Spec.Template.ObjectMeta.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
 		return runtime.Encode(scheme.Codecs.LegacyCodec(appsv1beta2.SchemeGroupVersion), obj)
+	case *kruiseappsv1alpha1.CloneSet:
+		if obj.Spec.Template.ObjectMeta.Annotations == nil {
+			obj.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+		}
+
+		// TODO is InPlaceOnly UpdateStrategy spport rollout restart?
+
+		obj.Spec.Template.ObjectMeta.Annotations["kubectl.kruise.io/restartedAt"] = time.Now().Format(time.RFC3339)
+		return runtime.Encode(scheme.Codecs.LegacyCodec(kruiseappsv1alpha1.SchemeGroupVersion), obj)
 
 	default:
 		return nil, fmt.Errorf("restarting is not supported")

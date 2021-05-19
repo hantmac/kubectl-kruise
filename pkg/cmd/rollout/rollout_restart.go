@@ -18,70 +18,77 @@ import (
 	"k8s.io/kubectl/pkg/util/templates"
 )
 
-// PauseOptions is the start of the data required to perform the operation.  As new fields are added, add them here instead of
+// RestartOptions is the start of the data required to perform the operation.  As new fields are added, add them here instead of
 // referencing the cmd.Flags()
-type PauseOptions struct {
+type RestartOptions struct {
 	PrintFlags *genericclioptions.PrintFlags
 	ToPrinter  func(string) (printers.ResourcePrinter, error)
 
-	Pauser           internalpolymorphichelpers.ObjectPauserFunc
+	Resources []string
+
 	Builder          func() *resource.Builder
+	Restarter        internalpolymorphichelpers.ObjectRestarterFunc
 	Namespace        string
 	EnforceNamespace bool
-	Resources        []string
 
 	resource.FilenameOptions
 	genericclioptions.IOStreams
 }
 
 var (
-	pauseLong = templates.LongDesc(`
-		Mark the provided resource as paused
+	restartLong = templates.LongDesc(`
+		Restart a resource.
 
-		Paused resources will not be reconciled by a controller.
-		Use "kubectl rollout resume" to resume a paused resource.
-		Currently  deployments, clonesets support being paused.`)
+	        Resource will be rollout restarted.`)
 
-	pauseExample = templates.Examples(`
-		# Mark the nginx deployment as paused. Any current state of
-		# the deployment will continue its function, new updates to the deployment will not
-		# have an effect as long as the deployment is paused.
-		kubectl-kruise rollout pause deployment/nginx`)
+	restartExample = templates.Examples(`
+		# Restart a deployment
+		kubectl-kruise rollout restart deployment/nginx
+		kubectl-kruise rollout restart cloneset/abc
+
+		# Restart a daemonset
+		kubectl-kruise rollout restart daemonset/abc`)
 )
 
-// NewCmdRolloutPause returns a Command instance for 'rollout pause' sub command
-func NewCmdRolloutPause(f cmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	o := &PauseOptions{
-		PrintFlags: genericclioptions.NewPrintFlags("paused").WithTypeSetter(internalclient.Scheme),
+// NewRolloutRestartOptions returns an initialized RestartOptions instance
+func NewRolloutRestartOptions(streams genericclioptions.IOStreams) *RestartOptions {
+	return &RestartOptions{
+		PrintFlags: genericclioptions.NewPrintFlags("restarted").WithTypeSetter(internalclient.Scheme),
 		IOStreams:  streams,
 	}
+}
 
-	validArgs := []string{"deployment", "cloneset"}
+// NewCmdRolloutRestart returns a Command instance for 'rollout restart' sub command
+func NewCmdRolloutRestart(f cmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewRolloutRestartOptions(streams)
+
+	validArgs := []string{"deployment", "daemonset", "statefulset"}
 
 	cmd := &cobra.Command{
-		Use:                   "pause RESOURCE",
+		Use:                   "restart RESOURCE",
 		DisableFlagsInUseLine: true,
-		Short:                 i18n.T("Mark the provided resource as paused"),
-		Long:                  pauseLong,
-		Example:               pauseExample,
+		Short:                 i18n.T("Restart a resource"),
+		Long:                  restartLong,
+		Example:               restartExample,
 		Run: func(cmd *cobra.Command, args []string) {
 			cmdutil.CheckErr(o.Complete(f, cmd, args))
 			cmdutil.CheckErr(o.Validate())
-			cmdutil.CheckErr(o.RunPause())
+			cmdutil.CheckErr(o.RunRestart())
 		},
 		ValidArgs: validArgs,
 	}
 
-	o.PrintFlags.AddFlags(cmd)
-
 	usage := "identifying the resource to get from a server."
 	cmdutil.AddFilenameOptionFlags(cmd, &o.FilenameOptions, usage)
+	o.PrintFlags.AddFlags(cmd)
 	return cmd
 }
 
 // Complete completes all the required options
-func (o *PauseOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args []string) error {
-	o.Pauser = internalpolymorphichelpers.ObjectPauserFn
+func (o *RestartOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args []string) error {
+	o.Resources = args
+
+	o.Restarter = internalpolymorphichelpers.ObjectRestarterFn
 
 	var err error
 	o.Namespace, o.EnforceNamespace, err = f.ToRawKubeConfigLoader().Namespace()
@@ -89,26 +96,25 @@ func (o *PauseOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args []st
 		return err
 	}
 
-	o.Resources = args
-	o.Builder = f.NewBuilder
-
 	o.ToPrinter = func(operation string) (printers.ResourcePrinter, error) {
 		o.PrintFlags.NamePrintFlags.Operation = operation
 		return o.PrintFlags.ToPrinter()
 	}
 
+	o.Builder = f.NewBuilder
+
 	return nil
 }
 
-func (o *PauseOptions) Validate() error {
+func (o *RestartOptions) Validate() error {
 	if len(o.Resources) == 0 && cmdutil.IsFilenameSliceEmpty(o.Filenames, o.Kustomize) {
 		return fmt.Errorf("required resource not specified")
 	}
 	return nil
 }
 
-// RunPause performs the execution of 'rollout pause' sub command
-func (o *PauseOptions) RunPause() error {
+// RunRestart performs the execution of 'rollout restart' sub command
+func (o RestartOptions) RunRestart() error {
 	r := o.Builder().
 		WithScheme(internalclient.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
 		NamespaceParam(o.Namespace).DefaultNamespace().
@@ -122,7 +128,7 @@ func (o *PauseOptions) RunPause() error {
 		return err
 	}
 
-	var allErrs []error
+	allErrs := []error{}
 	infos, err := r.Infos()
 	if err != nil {
 		// restore previous command behavior where
@@ -133,7 +139,7 @@ func (o *PauseOptions) RunPause() error {
 		allErrs = append(allErrs, err)
 	}
 
-	for _, patch := range set.CalculatePatches(infos, scheme.DefaultJSONEncoder(), set.PatchFn(o.Pauser)) {
+	for _, patch := range set.CalculatePatches(infos, scheme.DefaultJSONEncoder(), set.PatchFn(o.Restarter)) {
 		info := patch.Info
 
 		if patch.Err != nil {
@@ -146,15 +152,7 @@ func (o *PauseOptions) RunPause() error {
 		}
 
 		if string(patch.Patch) == "{}" || len(patch.Patch) == 0 {
-			printer, err := o.ToPrinter("already paused")
-			if err != nil {
-				allErrs = append(allErrs, err)
-				continue
-			}
-			if err = printer.PrintObj(info.Object, o.Out); err != nil {
-				allErrs = append(allErrs, err)
-			}
-			continue
+			allErrs = append(allErrs, fmt.Errorf("failed to create patch for %v: empty patch", info.Name))
 		}
 
 		obj, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, types.MergePatchType, patch.Patch, nil)
@@ -164,7 +162,7 @@ func (o *PauseOptions) RunPause() error {
 		}
 
 		info.Refresh(obj, true)
-		printer, err := o.ToPrinter("paused")
+		printer, err := o.ToPrinter("restarted")
 		if err != nil {
 			allErrs = append(allErrs, err)
 			continue
