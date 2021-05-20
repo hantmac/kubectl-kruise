@@ -62,7 +62,7 @@ func defaultObjectResumer(obj runtime.Object) ([]byte, error) {
 		if !obj.Spec.UpdateStrategy.Paused {
 			return nil, errors.New("is not paused")
 		}
-		obj.Spec.UpdateStrategy.Paused = true
+		obj.Spec.UpdateStrategy.Paused = false
 		return runtime.Encode(scheme.Codecs.LegacyCodec(kruiseappsv1alpha1.SchemeGroupVersion), obj)
 
 	default:
