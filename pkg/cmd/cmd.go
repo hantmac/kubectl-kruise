@@ -6,6 +6,7 @@ import (
 	"os"
 
 	krollout "github.com/hantmac/kubectl-kruise/pkg/cmd/rollout"
+	kset "github.com/hantmac/kubectl-kruise/pkg/cmd/set"
 	"github.com/spf13/cobra"
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -361,6 +362,7 @@ func NewKubectlCommand(in io.Reader, out, err io.Writer) *cobra.Command {
 			Message: "CloneSet Commands:",
 			Commands: []*cobra.Command{
 				krollout.NewCmdRollout(f, ioStreams),
+				kset.NewCmdSet(f, ioStreams),
 				scale.NewCmdScale(f, ioStreams),
 				autoscale.NewCmdAutoscale(f, ioStreams),
 			},

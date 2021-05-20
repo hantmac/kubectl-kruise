@@ -18,6 +18,7 @@ package polymorphichelpers
 
 import (
 	"fmt"
+	kruiseappsv1alpha1 "github.com/openkruise/kruise-api/apps/v1alpha1"
 
 	appsv1 "k8s.io/api/apps/v1"
 	appsv1beta1 "k8s.io/api/apps/v1beta1"
@@ -84,6 +85,10 @@ func updatePodSpecForObject(obj runtime.Object, fn func(*v1.PodSpec) error) (boo
 		return true, fn(&t.Spec.JobTemplate.Spec.Template.Spec)
 	case *batchv2alpha1.CronJob:
 		return true, fn(&t.Spec.JobTemplate.Spec.Template.Spec)
+
+		// CloneSet
+	case *kruiseappsv1alpha1.CloneSet:
+		return true, fn(&t.Spec.Template.Spec)
 
 	default:
 		return false, fmt.Errorf("the object is not a pod or does not have a pod template: %T", t)
