@@ -45,8 +45,8 @@ func NewCmdSet(f cmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Co
 	cmd.AddCommand(NewCmdImage(f, streams))
 	cmd.AddCommand(NewCmdResources(f, streams))
 	cmd.AddCommand(NewCmdSelector(f, streams))
-	//cmd.AddCommand(NewCmdSubject(f, streams))
-	//cmd.AddCommand(NewCmdServiceAccount(f, streams))
+	cmd.AddCommand(NewCmdSubject(f, streams))
+	cmd.AddCommand(NewCmdServiceAccount(f, streams))
 	cmd.AddCommand(NewCmdEnv(f, streams))
 
 	return cmd
