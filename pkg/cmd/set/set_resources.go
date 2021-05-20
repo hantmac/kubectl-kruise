@@ -1,4 +1,5 @@
 /*
+Copyright 2021 The Kruise Authors.
 Copyright 2016 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,6 +19,8 @@ package set
 
 import (
 	"fmt"
+	internalclient "github.com/hantmac/kubectl-kruise/pkg/client"
+	internalpolymorphichelpers "github.com/hantmac/kubectl-kruise/pkg/internal/polymorphichelpers"
 
 	"github.com/spf13/cobra"
 	"k8s.io/klog"
@@ -31,7 +34,6 @@ import (
 	"k8s.io/cli-runtime/pkg/resource"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	generateversioned "k8s.io/kubectl/pkg/generate/versioned"
-	"k8s.io/kubectl/pkg/polymorphichelpers"
 	"k8s.io/kubectl/pkg/scheme"
 	"k8s.io/kubectl/pkg/util/i18n"
 	"k8s.io/kubectl/pkg/util/templates"
@@ -47,16 +49,19 @@ var (
 
 	resourcesExample = templates.Examples(`
 		# Set a deployments nginx container cpu limits to "200m" and memory to "512Mi"
-		kubectl set resources deployment nginx -c=nginx --limits=cpu=200m,memory=512Mi
+		kubectl-kruise set resources deployment nginx -c=nginx --limits=cpu=200m,memory=512Mi
+
+		# Set a cloneset nginx container cpu limits to "200m" and memory to "512Mi" 
+		kubectl-kruise set resources cloneset nginx -c=nginx --limits=cpu=200m,memory=512Mi
 
 		# Set the resource request and limits for all containers in nginx
-		kubectl set resources deployment nginx --limits=cpu=200m,memory=512Mi --requests=cpu=100m,memory=256Mi
+		kubectl-kruise set resources deployment nginx --limits=cpu=200m,memory=512Mi --requests=cpu=100m,memory=256Mi
 
 		# Remove the resource requests for resources on containers in nginx
-		kubectl set resources deployment nginx --limits=cpu=0,memory=0 --requests=cpu=0,memory=0
+		kubectl-kruise set resources deployment nginx --limits=cpu=0,memory=0 --requests=cpu=0,memory=0
 
 		# Print the result (in yaml format) of updating nginx container limits from a local, without hitting the server
-		kubectl set resources -f path/to/file.yaml --limits=cpu=200m,memory=512Mi --local -o yaml`)
+		kubectl-kruise set resources -f path/to/file.yaml --limits=cpu=200m,memory=512Mi --local -o yaml`)
 )
 
 // SetResourcesOptions is the start of the data required to perform the operation. As new fields are added, add them here instead of
@@ -83,7 +88,7 @@ type SetResourcesOptions struct {
 	Requests             string
 	ResourceRequirements v1.ResourceRequirements
 
-	UpdatePodSpecForObject polymorphichelpers.UpdatePodSpecForObjectFunc
+	UpdatePodSpecForObject internalpolymorphichelpers.UpdatePodSpecForObjectFunc
 	Resources              []string
 	DryRunVerifier         *resource.DryRunVerifier
 
@@ -94,7 +99,7 @@ type SetResourcesOptions struct {
 // pod templates are selected by default.
 func NewResourcesOptions(streams genericclioptions.IOStreams) *SetResourcesOptions {
 	return &SetResourcesOptions{
-		PrintFlags:  genericclioptions.NewPrintFlags("resource requirements updated").WithTypeSetter(scheme.Scheme),
+		PrintFlags:  genericclioptions.NewPrintFlags("resource requirements updated").WithTypeSetter(internalclient.Scheme),
 		RecordFlags: genericclioptions.NewRecordFlags(),
 
 		Recorder: genericclioptions.NoopRecorder{},
@@ -149,7 +154,7 @@ func (o *SetResourcesOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, ar
 		return err
 	}
 
-	o.UpdatePodSpecForObject = polymorphichelpers.UpdatePodSpecForObjectFn
+	o.UpdatePodSpecForObject = internalpolymorphichelpers.UpdatePodSpecForObjectFn
 	o.Output = cmdutil.GetFlagString(cmd, "output")
 	o.DryRunStrategy, err = cmdutil.GetDryRunStrategy(cmd)
 	if err != nil {
@@ -178,7 +183,7 @@ func (o *SetResourcesOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, ar
 	}
 
 	builder := f.NewBuilder().
-		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
+		WithScheme(internalclient.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
 		LocalParam(o.Local).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
@@ -301,7 +306,7 @@ func (o *SetResourcesOptions) Run() error {
 		actual, err := resource.
 			NewHelper(info.Client, info.Mapping).
 			DryRun(o.DryRunStrategy == cmdutil.DryRunServer).
-			Patch(info.Namespace, info.Name, types.StrategicMergePatchType, patch.Patch, nil)
+			Patch(info.Namespace, info.Name, types.MergePatchType, patch.Patch, nil)
 		if err != nil {
 			allErrs = append(allErrs, fmt.Errorf("failed to patch resources update to pod template %v", err))
 			continue

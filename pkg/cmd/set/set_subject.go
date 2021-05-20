@@ -18,6 +18,7 @@ package set
 
 import (
 	"fmt"
+	internalclient "github.com/hantmac/kubectl-kruise/pkg/client"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -83,7 +84,7 @@ type SubjectOptions struct {
 // NewSubjectOptions returns an initialized SubjectOptions instance
 func NewSubjectOptions(streams genericclioptions.IOStreams) *SubjectOptions {
 	return &SubjectOptions{
-		PrintFlags: genericclioptions.NewPrintFlags("subjects updated").WithTypeSetter(scheme.Scheme),
+		PrintFlags: genericclioptions.NewPrintFlags("subjects updated").WithTypeSetter(internalclient.Scheme),
 
 		IOStreams: streams,
 	}
@@ -150,7 +151,7 @@ func (o *SubjectOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args []
 	}
 
 	builder := f.NewBuilder().
-		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
+		WithScheme(internalclient.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
 		LocalParam(o.Local).
 		ContinueOnError().
 		NamespaceParam(o.namespace).DefaultNamespace().
@@ -281,7 +282,7 @@ func (o *SubjectOptions) Run(fn updateSubjects) error {
 		actual, err := resource.
 			NewHelper(info.Client, info.Mapping).
 			DryRun(o.DryRunStrategy == cmdutil.DryRunServer).
-			Patch(info.Namespace, info.Name, types.StrategicMergePatchType, patch.Patch, nil)
+			Patch(info.Namespace, info.Name, types.MergePatchType, patch.Patch, nil)
 		if err != nil {
 			allErrs = append(allErrs, fmt.Errorf("failed to patch subjects to rolebinding: %v", err))
 			continue

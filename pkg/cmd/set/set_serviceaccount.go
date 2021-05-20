@@ -19,6 +19,7 @@ package set
 import (
 	"errors"
 	"fmt"
+	internalclient "github.com/hantmac/kubectl-kruise/pkg/client"
 
 	"github.com/spf13/cobra"
 	v1 "k8s.io/api/core/v1"
@@ -81,7 +82,7 @@ type SetServiceAccountOptions struct {
 // NewSetServiceAccountOptions returns an initialized SetServiceAccountOptions instance
 func NewSetServiceAccountOptions(streams genericclioptions.IOStreams) *SetServiceAccountOptions {
 	return &SetServiceAccountOptions{
-		PrintFlags:  genericclioptions.NewPrintFlags("serviceaccount updated").WithTypeSetter(scheme.Scheme),
+		PrintFlags:  genericclioptions.NewPrintFlags("serviceaccount updated").WithTypeSetter(internalclient.Scheme),
 		RecordFlags: genericclioptions.NewRecordFlags(),
 
 		Recorder: genericclioptions.NoopRecorder{},
@@ -165,7 +166,7 @@ func (o *SetServiceAccountOptions) Complete(f cmdutil.Factory, cmd *cobra.Comman
 	o.serviceAccountName = args[len(args)-1]
 	resources := args[:len(args)-1]
 	builder := f.NewBuilder().
-		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
+		WithScheme(internalclient.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
 		LocalParam(o.local).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
@@ -224,7 +225,7 @@ func (o *SetServiceAccountOptions) Run() error {
 		actual, err := resource.
 			NewHelper(info.Client, info.Mapping).
 			DryRun(o.dryRunStrategy == cmdutil.DryRunServer).
-			Patch(info.Namespace, info.Name, types.StrategicMergePatchType, patch.Patch, nil)
+			Patch(info.Namespace, info.Name, types.MergePatchType, patch.Patch, nil)
 		if err != nil {
 			patchErrs = append(patchErrs, fmt.Errorf("failed to patch ServiceAccountName %v", err))
 			continue
