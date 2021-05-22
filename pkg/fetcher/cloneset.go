@@ -2,7 +2,6 @@ package fetcher
 
 import (
 	"context"
-
 	kruiseappsv1alpha1 "github.com/openkruise/kruise-api/apps/v1alpha1"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"

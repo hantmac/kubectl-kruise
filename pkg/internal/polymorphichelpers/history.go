@@ -27,6 +27,7 @@ import (
 	"github.com/hantmac/kubectl-kruise/pkg/fetcher"
 	internalapps "github.com/hantmac/kubectl-kruise/pkg/internal/apps"
 	kruiseappsv1alpha1 "github.com/openkruise/kruise-api/apps/v1alpha1"
+	kruiseappsv1beta1 "github.com/openkruise/kruise-api/apps/v1beta1"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -73,6 +74,18 @@ func (v *HistoryVisitor) VisitDaemonSet(kind internalapps.GroupKindElement) {
 	v.result = &DaemonSetHistoryViewer{v.clientset}
 }
 
+func (v *HistoryVisitor) VisitCloneSet(kind internalapps.GroupKindElement) {
+	mgr := internalclient.NewManager()
+	v.c = mgr.GetAPIReader()
+	v.result = &CloneSetHistoryViewer{v.c, v.clientset}
+}
+
+func (v *HistoryVisitor) VisitAdvancedStatefulSet(kind internalapps.GroupKindElement) {
+	mgr := internalclient.NewManager()
+	v.c = mgr.GetAPIReader()
+	v.result = &AdvancedStatefulSetHistoryViewer{v.c, v.clientset}
+}
+
 func (v *HistoryVisitor) VisitJob(kind internalapps.GroupKindElement)                   {}
 func (v *HistoryVisitor) VisitPod(kind internalapps.GroupKindElement)                   {}
 func (v *HistoryVisitor) VisitReplicaSet(kind internalapps.GroupKindElement)            {}
@@ -100,19 +113,9 @@ func HistoryViewerFor(kind schema.GroupKind, c kubernetes.Interface) (HistoryVie
 	return visitor.result, nil
 }
 
-type DeploymentHistoryViewer struct {
-	c kubernetes.Interface
-}
-
 type CloneSetHistoryViewer struct {
 	c client.Reader
 	k kubernetes.Interface
-}
-
-func (v *HistoryVisitor) VisitCloneSet(kind internalapps.GroupKindElement) {
-	mgr := internalclient.NewManager()
-	v.c = mgr.GetAPIReader()
-	v.result = &CloneSetHistoryViewer{v.c, v.clientset}
 }
 
 // TODO impl ViewHistory func for CloneSet
@@ -124,12 +127,35 @@ func (h *CloneSetHistoryViewer) ViewHistory(namespace, name string, revision int
 	}
 
 	return printHistory(history, revision, func(history *appsv1.ControllerRevision) (*corev1.PodTemplateSpec, error) {
-		stsOfHistory, err := applyCloneSetHistory(cs, history)
+		csOfHistory, err := applyCloneSetHistory(cs, history)
 		if err != nil {
 			return nil, err
 		}
-		return &stsOfHistory.Spec.Template, err
+		return &csOfHistory.Spec.Template, err
 	})
+}
+
+type AdvancedStatefulSetHistoryViewer struct {
+	c client.Reader
+	k kubernetes.Interface
+}
+
+func (h *AdvancedStatefulSetHistoryViewer) ViewHistory(namespace, name string, revision int64) (string, error) {
+	asts, history, err := advancedstsHistory(h.k.AppsV1(), h.c, namespace, name)
+	if err != nil {
+		return "", err
+	}
+	return printHistory(history, revision, func(history *appsv1.ControllerRevision) (*corev1.PodTemplateSpec, error) {
+		astsOfHistory, err := applyAdvancedStatefulSetHistory(asts, history)
+		if err != nil {
+			return nil, err
+		}
+		return &astsOfHistory.Spec.Template, err
+	})
+}
+
+type DeploymentHistoryViewer struct {
+	c kubernetes.Interface
 }
 
 // ViewHistory returns a revision-to-replicaset map as the revision history of a deployment
@@ -369,7 +395,7 @@ func clonesetHistory(
 	}
 	selector, err := metav1.LabelSelectorAsSelector(cs.Spec.Selector)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create selector for StatefulSet %s: %s", name, err.Error())
+		return nil, nil, fmt.Errorf("failed to create selector for CloneSet %s: %s", name, err.Error())
 	}
 	accessor, err := meta.Accessor(cs)
 	if err != nil {
@@ -381,6 +407,30 @@ func clonesetHistory(
 	}
 
 	return cs, history, nil
+}
+
+func advancedstsHistory(
+	apps clientappsv1.AppsV1Interface, cr client.Reader,
+	namespace, name string) (*kruiseappsv1beta1.StatefulSet, []*appsv1.ControllerRevision, error) {
+	asts, found, err := fetcher.GetAdvancedStsInCache(namespace, name, cr)
+	if err != nil || !found {
+		klog.Error(err)
+		return nil, nil, fmt.Errorf("failed to retrieve Advanced StatefulSet %s: %s", name, err.Error())
+	}
+	selector, err := metav1.LabelSelectorAsSelector(asts.Spec.Selector)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create selector for Advanced StatefulSet %s: %s", name, err.Error())
+	}
+	accessor, err := meta.Accessor(asts)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to obtain accessor for Advanced  StatefulSet %s: %s", name, err.Error())
+	}
+
+	history, err := controlledHistoryV1(apps, namespace, selector, accessor)
+	if err != nil {
+		return nil, nil, fmt.Errorf("unable to find history controlled by StatefulSet %s: %v", name, err)
+	}
+	return asts, history, nil
 }
 
 // statefulSetHistory returns the StatefulSet named name in namespace and all ControllerRevisions in its history.
@@ -462,6 +512,24 @@ func applyCloneSetHistory(cs *kruiseappsv1alpha1.CloneSet,
 	}
 	return result, nil
 
+}
+
+func applyAdvancedStatefulSetHistory(asts *kruiseappsv1beta1.StatefulSet,
+	history *appsv1.ControllerRevision) (*kruiseappsv1alpha1.StatefulSet, error) {
+	astsBytes, err := json.Marshal(asts)
+	if err != nil {
+		return nil, err
+	}
+	patched, err := strategicpatch.StrategicMergePatch(astsBytes, history.Data.Raw, asts)
+	if err != nil {
+		return nil, err
+	}
+	result := &kruiseappsv1alpha1.StatefulSet{}
+	err = json.Unmarshal(patched, result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 // TODO: copied here until this becomes a describer
