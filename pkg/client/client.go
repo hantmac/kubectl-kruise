@@ -2,6 +2,7 @@ package client
 
 import (
 	kruiseappsv1alpha1 "github.com/openkruise/kruise-api/apps/v1alpha1"
+	kruiseappsv1beta1 "github.com/openkruise/kruise-api/apps/v1beta1"
 	"k8s.io/kubectl/pkg/scheme"
 	"sync"
 
@@ -17,6 +18,7 @@ var Scheme = scheme.Scheme
 func init() {
 	_ = clientgoscheme.AddToScheme(Scheme)
 	_ = kruiseappsv1alpha1.AddToScheme(Scheme)
+	_ = kruiseappsv1beta1.AddToScheme(Scheme)
 }
 
 func NewManager() ctrl.Manager {

@@ -82,6 +82,7 @@ func (v *RollbackVisitor) VisitPod(kind internalapps.GroupKindElement)          
 func (v *RollbackVisitor) VisitReplicaSet(kind internalapps.GroupKindElement)            {}
 func (v *RollbackVisitor) VisitReplicationController(kind internalapps.GroupKindElement) {}
 func (v *RollbackVisitor) VisitCronJob(kind internalapps.GroupKindElement)               {}
+func (v *RollbackVisitor) VisitAdvancedStatefulSet(kind internalapps.GroupKindElement) () {}
 
 // RollbackerFor returns an implementation of Rollbacker interface for the given schema kind
 func RollbackerFor(kind schema.GroupKind, c kubernetes.Interface) (Rollbacker, error) {
@@ -416,6 +417,20 @@ type CloneSetRollbacker struct {
 	cr client.Reader
 	c  client.Client
 	k  kubernetes.Interface
+}
+
+type AdvancedStatefulSetRollbacker struct {
+	cr client.Reader
+	c  client.Client
+	k  kubernetes.Interface
+}
+
+func (r *AdvancedStatefulSetRollbacker) Rollback(obj runtime.Object,
+	updatedAnnotations map[string]string,
+	toRevision int64,
+	dryRunStrategy cmdutil.DryRunStrategy) (string, error) {
+
+	return "", nil
 }
 
 func (r *CloneSetRollbacker) Rollback(obj runtime.Object,
