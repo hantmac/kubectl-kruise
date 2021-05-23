@@ -29,8 +29,8 @@ By now the `rollout undo`, `rollout status`, `rollout history` has been develope
    * [x] restart
    
 #### kubectl kruise rollout for Advanced StatefulSet
-   * [ ]  undo
-   * [ ] history
+   * [x]  undo
+   * [x] history
    * [ ] status
    * [ ] pause
    * [ ] resume
