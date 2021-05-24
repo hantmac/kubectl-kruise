@@ -79,7 +79,7 @@ func NewRolloutStatusOptions(streams genericclioptions.IOStreams) *RolloutStatus
 func NewCmdRolloutStatus(f cmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	o := NewRolloutStatusOptions(streams)
 
-	validArgs := []string{"deployment", "daemonset", "statefulset", "cloneset"}
+	validArgs := []string{"deployment", "daemonset", "statefulset", "cloneset", "advancedstatefulset"}
 
 	cmd := &cobra.Command{
 		Use:                   "status (TYPE NAME | TYPE/NAME) [flags]",
