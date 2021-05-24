@@ -214,7 +214,7 @@ func (s *AdvancedStatefulSetViewer) Status(obj runtime.Unstructured, revision in
 	}
 
 	if asts.Spec.Replicas != nil && asts.Status.ReadyReplicas < *asts.Spec.Replicas {
-		return fmt.Sprintf("\"Waiting for %d pods to be ready...\n", *asts.Spec.Replicas-asts.Status.ReadyReplicas), false, nil
+		return fmt.Sprintf("Waiting for %d pods to be ready...\n", *asts.Spec.Replicas-asts.Status.ReadyReplicas), false, nil
 	}
 	return fmt.Sprintf("Advanced StatefulSet rolling update complete %d pods at revision %s...\n", asts.Status.AvailableReplicas, asts.Status.UpdateRevision), true, nil
 
