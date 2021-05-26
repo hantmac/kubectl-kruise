@@ -44,7 +44,12 @@ var (
 	restartExample = templates.Examples(`
 		# Restart a deployment
 		kubectl-kruise rollout restart deployment/nginx
+
+		# Restart a cloneset
 		kubectl-kruise rollout restart cloneset/abc
+		
+		# Restart a advanced statefulset
+		kubectl-kruise rollout restart asts/abc
 
 		# Restart a daemonset
 		kubectl-kruise rollout restart daemonset/abc`)
