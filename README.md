@@ -34,7 +34,7 @@ By now the `rollout undo`, `rollout status`, `rollout history` has been develope
    * [x] status
    * [x] pause
    * [x] resume
-   * [ ] restart
+   * [x] restart
    
 #### kubectl kruise set SUBCOMMAND [options]
    * [x] kubectl kruise set image 
