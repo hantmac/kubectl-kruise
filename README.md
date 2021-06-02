@@ -40,6 +40,12 @@ By now the `rollout undo`, `rollout status`, `rollout history` has been develope
    * [x] kubectl kruise set image 
    * [x] kubectl kruise set env
    
+<<<<<<< HEAD
+=======
+#### kubectl kruise autoscale SUBCOMMAND [options]
+   * [x] kubectl kruise autoscale 
+ 
+>>>>>>> f174132a32d7c9c0912c939ed72c7d9850a5c021
 #### kubectl kruise run 
    * [ ] kubectl kruise run NAME --image=image [--env="key=value"] [--port=port] [--dry-run=server | client | none] [--overrides=inline-json] [flags]
   
