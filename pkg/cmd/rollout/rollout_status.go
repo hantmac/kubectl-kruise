@@ -41,6 +41,9 @@ var (
 
 	statusExample = templates.Examples(`
 		# Watch the rollout status of a cloneset
+
+		kubectl-kruise rollout status deployment/nginx	
+
 		kubectl-kruise rollout status cloneset/nginx`)
 )
 
