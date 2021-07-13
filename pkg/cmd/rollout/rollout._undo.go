@@ -58,6 +58,9 @@ var (
 		# Rollback to the previous cloneset
 		kubectl rollout undo cloneset/abc
 
+		# Rollback to the previous Advanced StatefulSet
+		kubectl rollout undo asts/abc
+
 		# Rollback to daemonset revision 3
 		kubectl rollout undo daemonset/abc --to-revision=3
 
@@ -78,7 +81,7 @@ func NewRolloutUndoOptions(streams genericclioptions.IOStreams) *UndoOptions {
 func NewCmdRolloutUndo(f cmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	o := NewRolloutUndoOptions(streams)
 
-	validArgs := []string{"deployment", "daemonset", "statefulset", "cloneset"}
+	validArgs := []string{"deployment", "daemonset", "statefulset", "cloneset", "advenced statefulset"}
 
 	cmd := &cobra.Command{
 		Use:                   "undo (TYPE NAME | TYPE/NAME) [flags]",

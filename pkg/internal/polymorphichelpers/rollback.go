@@ -20,11 +20,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"sort"
+
 	internalclient "github.com/hantmac/kubectl-kruise/pkg/client"
 	internalapps "github.com/hantmac/kubectl-kruise/pkg/internal/apps"
 	kruiseappsv1alpha1 "github.com/openkruise/kruise-api/apps/v1alpha1"
 	kruiseappsv1beta1 "github.com/openkruise/kruise-api/apps/v1beta1"
-	"sort"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
