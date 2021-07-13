@@ -515,7 +515,7 @@ func applyCloneSetHistory(cs *kruiseappsv1alpha1.CloneSet,
 }
 
 func applyAdvancedStatefulSetHistory(asts *kruiseappsv1beta1.StatefulSet,
-	history *appsv1.ControllerRevision) (*kruiseappsv1alpha1.StatefulSet, error) {
+	history *appsv1.ControllerRevision) (*kruiseappsv1beta1.StatefulSet, error) {
 	astsBytes, err := json.Marshal(asts)
 	if err != nil {
 		return nil, err
@@ -524,7 +524,7 @@ func applyAdvancedStatefulSetHistory(asts *kruiseappsv1beta1.StatefulSet,
 	if err != nil {
 		return nil, err
 	}
-	result := &kruiseappsv1alpha1.StatefulSet{}
+	result := &kruiseappsv1beta1.StatefulSet{}
 	err = json.Unmarshal(patched, result)
 	if err != nil {
 		return nil, err
