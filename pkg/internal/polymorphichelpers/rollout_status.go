@@ -18,6 +18,7 @@ package polymorphichelpers
 
 import (
 	"fmt"
+
 	kruiseappsv1alpha1 "github.com/openkruise/kruise-api/apps/v1alpha1"
 	kruiseappsv1beta1 "github.com/openkruise/kruise-api/apps/v1beta1"
 
@@ -178,7 +179,6 @@ func (s *CloneSetStatusViewer) Status(obj runtime.Unstructured, revision int64) 
 			if cs.Status.UpdatedReplicas < (*cs.Spec.Replicas - cs.Spec.UpdateStrategy.Partition.IntVal) {
 				return fmt.Sprintf("Waiting for partitioned roll out to finish: %d out of %d new pods have been updated...\n",
 					cs.Status.UpdatedReplicas, *cs.Spec.Replicas-cs.Spec.UpdateStrategy.Partition.IntVal), false, nil
-
 			}
 		}
 	}
@@ -193,12 +193,14 @@ func (s *CloneSetStatusViewer) Status(obj runtime.Unstructured, revision int64) 
 	return fmt.Sprintf("CloneSet rolling update complete %d pods at revision %s...\n", cs.Status.AvailableReplicas, cs.Status.UpdateRevision), true, nil
 }
 
+// Status returns a message describing advanced statefulset status, and a bool value indicating if the status is considered done.
 func (s *AdvancedStatefulSetViewer) Status(obj runtime.Unstructured, revision int64) (string, bool, error) {
 	asts := &kruiseappsv1beta1.StatefulSet{}
 	err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), asts)
 	if err != nil {
 		return "", false, fmt.Errorf("failed to convert %T to %T: %v", obj, asts, err)
 	}
+
 	// check InPlaceOnly and InPlacePossible UpdateStrategy
 	if asts.Spec.UpdateStrategy.Type == appsv1.RollingUpdateStatefulSetStrategyType {
 		if asts.Spec.Replicas != nil && asts.Spec.UpdateStrategy.RollingUpdate.Partition != nil {
