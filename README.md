@@ -36,15 +36,16 @@ By now the `rollout undo`, `rollout status`, `rollout history` has been develope
    * [x] resume
    * [x] restart
    
-#### kubectl kruise set SUBCOMMAND [options]
-   * [x] kubectl kruise set image 
-   * [x] kubectl kruise set env
+#### kubectl kruise set SUBCOMMAND [options] for CloneSet
+   * [x] kubectl kruise set image cloneset/abc
+   * [x] kubectl kruise set env cloneset/abc
+   
+#### kubectl kruise set SUBCOMMAND [options] for Advanced StatefulSet
+   * [ ] kubectl kruise set image asts/abc
+   * [ ] kubectl kruise set env asts/abc
    
 #### kubectl kruise autoscale SUBCOMMAND [options]
    * [x] kubectl kruise autoscale 
  
-#### kubectl kruise run 
-   * [ ] kubectl kruise run NAME --image=image [--env="key=value"] [--port=port] [--dry-run=server | client | none] [--overrides=inline-json] [flags]
-  
 ### Contributing
 We encourage you to help out by reporting issues, improving documentation, fixing bugs, or adding new features. 
