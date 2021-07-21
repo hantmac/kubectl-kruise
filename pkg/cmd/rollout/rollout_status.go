@@ -40,12 +40,13 @@ var (
 		use --revision=N where N is the revision you need to watch for.`)
 
 	statusExample = templates.Examples(`
-		# Watch the rollout status of a resource
-
+		# Watch the rollout status of a deployment
 		kubectl-kruise rollout status deployment/nginx	
 
+		# Watch the rollout status of a cloneset
 		kubectl-kruise rollout status cloneset/nginx
 
+		# Watch the rollout status of a advanced statefulset
 		kubectl-kruise rollout status asts/nginx`)
 )
 
