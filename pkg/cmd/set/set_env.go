@@ -68,38 +68,7 @@ var (
 	  kubectl-kruise set env deployment/registry STORAGE_DIR=/local
 
       # Update cloneset 'registry' with a new environment variable
-      kubectl-kruise set env  cloneset/registry STORAGE_DIR=/local
-
-	  # List the environment variables defined on a deployments 'sample-build'
-	  kubectl-kruise set env deployment/sample-build --list
-
-	  # List the environment variables defined on all pods
-	  kubectl-kruise set env pods --all --list
-
-	  # Output modified deployment in YAML, and does not alter the object on the server
-	  kubectl-kruise set env deployment/sample-build STORAGE_DIR=/data -o yaml
-
-	  # Update all containers in all replication controllers in the project to have ENV=prod
-	  kubectl-kruise set env rc --all ENV=prod
-
-	  # Import environment from a secret
-	  kubectl-kruise set env --from=secret/mysecret deployment/myapp
-
-	  # Import environment from a config map with a prefix
-	  kubectl-kruise set env --from=configmap/myconfigmap --prefix=MYSQL_ deployment/myapp
-
-          # Import specific keys from a config map
-          kubectl-kruise set env --keys=my-example-key --from=configmap/myconfigmap deployment/myapp
-
-	  # Remove the environment variable ENV from container 'c1' in all deployment configs
-	  kubectl-kruise set env deployments --all --containers="c1" ENV-
-
-	  # Remove the environment variable ENV from a deployment definition on disk and
-	  # update the deployment config on the server
-	  kubectl-kruise set env -f deploy.json ENV-
-
-	  # Set some of the local shell environment into a deployment config on the server
-	  env | grep RAILS_ | kubectl set env -e - deployment/registry`)
+      kubectl-kruise set env  cloneset/registry STORAGE_DIR=/local`)
 )
 
 // EnvOptions holds values for 'set env' command-lone options

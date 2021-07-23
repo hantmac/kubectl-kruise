@@ -39,8 +39,8 @@ By now the `rollout undo`, `rollout status`, `rollout history` has been develope
 #### kubectl kruise set SUBCOMMAND [options] for CloneSet
    * [x] kubectl kruise set image cloneset/abc
    * [x] kubectl kruise set env cloneset/abc
-   * [ ] kubectl kruise set serviceaccount cloneset/abc 
-   * [ ] kubectl kruise set resources cloneset/abc 
+   * [x] kubectl kruise set serviceaccount cloneset/abc 
+   * [x] kubectl kruise set resources cloneset/abc 
    
 #### kubectl kruise set SUBCOMMAND [options] for Advanced StatefulSet
    * [ ] kubectl kruise set image asts/abc
