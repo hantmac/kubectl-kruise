@@ -19,20 +19,20 @@ package set
 import (
 	"errors"
 	"fmt"
+
 	internalclient "github.com/hantmac/kubectl-kruise/pkg/client"
-
+	internalpolymorphichelpers "github.com/hantmac/kubectl-kruise/pkg/internal/polymorphichelpers"
 	"github.com/spf13/cobra"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/klog"
 
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/printers"
 	"k8s.io/cli-runtime/pkg/resource"
+	"k8s.io/klog"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
-	"k8s.io/kubectl/pkg/polymorphichelpers"
 	"k8s.io/kubectl/pkg/scheme"
 	"k8s.io/kubectl/pkg/util/i18n"
 	"k8s.io/kubectl/pkg/util/templates"
@@ -40,7 +40,7 @@ import (
 
 var (
 	serviceaccountResources = `
-	replicationcontroller (rc), deployment (deploy), daemonset (ds), job, replicaset (rs), statefulset`
+	replicationcontroller (rc), deployment (deploy), daemonset (ds), job, replicaset (rs), statefulset, cloneset (cs)`
 
 	serviceaccountLong = templates.LongDesc(i18n.T(`
 	Update ServiceAccount of pod template resources.
@@ -52,8 +52,11 @@ var (
 	# Set Deployment nginx-deployment's ServiceAccount to serviceaccount1
 	kubectl-kruise set serviceaccount deployment nginx-deployment serviceaccount1
 
-	# Print the result (in yaml format) of updated nginx deployment with serviceaccount from local file, without hitting apiserver
-	kubectl-kruise set sa -f nginx-deployment.yaml serviceaccount1 --local --dry-run=client -o yaml
+	# Set cloneset nginx-cloneset's ServiceAccount to serviceaccount1
+	kubectl-kruise set serviceaccount cloneset nginx-cloneset serviceaccount1
+
+	# Print the result (in yaml format) of updated nginx cloneset with serviceaccount from local file, without hitting apiserver
+	kubectl-kruise set sa -f nginx-cloneset.yaml serviceaccount1 --local --dry-run=client -o yaml
 	`))
 )
 
@@ -69,7 +72,7 @@ type SetServiceAccountOptions struct {
 	all                    bool
 	output                 string
 	local                  bool
-	updatePodSpecForObject polymorphichelpers.UpdatePodSpecForObjectFunc
+	updatePodSpecForObject internalpolymorphichelpers.UpdatePodSpecForObjectFunc
 	infos                  []*resource.Info
 	serviceAccountName     string
 
@@ -147,7 +150,7 @@ func (o *SetServiceAccountOptions) Complete(f cmdutil.Factory, cmd *cobra.Comman
 	}
 	o.dryRunVerifier = resource.NewDryRunVerifier(dynamicClient, discoveryClient)
 	o.output = cmdutil.GetFlagString(cmd, "output")
-	o.updatePodSpecForObject = polymorphichelpers.UpdatePodSpecForObjectFn
+	o.updatePodSpecForObject = internalpolymorphichelpers.UpdatePodSpecForObjectFn
 
 	cmdutil.PrintFlagsWithDryRunStrategy(o.PrintFlags, o.dryRunStrategy)
 	printer, err := o.PrintFlags.ToPrinter()

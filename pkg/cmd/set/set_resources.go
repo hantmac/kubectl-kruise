@@ -19,11 +19,10 @@ package set
 
 import (
 	"fmt"
+
 	internalclient "github.com/hantmac/kubectl-kruise/pkg/client"
 	internalpolymorphichelpers "github.com/hantmac/kubectl-kruise/pkg/internal/polymorphichelpers"
-
 	"github.com/spf13/cobra"
-	"k8s.io/klog"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -32,6 +31,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/printers"
 	"k8s.io/cli-runtime/pkg/resource"
+	"k8s.io/klog"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	generateversioned "k8s.io/kubectl/pkg/generate/versioned"
 	"k8s.io/kubectl/pkg/scheme"
@@ -53,12 +53,6 @@ var (
 
 		# Set a cloneset nginx container cpu limits to "200m" and memory to "512Mi" 
 		kubectl-kruise set resources cloneset nginx -c=nginx --limits=cpu=200m,memory=512Mi
-
-		# Set the resource request and limits for all containers in nginx
-		kubectl-kruise set resources deployment nginx --limits=cpu=200m,memory=512Mi --requests=cpu=100m,memory=256Mi
-
-		# Remove the resource requests for resources on containers in nginx
-		kubectl-kruise set resources deployment nginx --limits=cpu=0,memory=0 --requests=cpu=0,memory=0
 
 		# Print the result (in yaml format) of updating nginx container limits from a local, without hitting the server
 		kubectl-kruise set resources -f path/to/file.yaml --limits=cpu=200m,memory=512Mi --local -o yaml`)

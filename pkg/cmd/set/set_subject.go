@@ -18,9 +18,9 @@ package set
 
 import (
 	"fmt"
-	internalclient "github.com/hantmac/kubectl-kruise/pkg/client"
 	"strings"
 
+	internalclient "github.com/hantmac/kubectl-kruise/pkg/client"
 	"github.com/spf13/cobra"
 
 	rbacv1 "k8s.io/api/rbac/v1"
