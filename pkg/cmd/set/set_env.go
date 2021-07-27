@@ -46,7 +46,7 @@ import (
 var (
 	validEnvNameRegexp = regexp.MustCompile("[^a-zA-Z0-9_]")
 	envResources       = `
-  	pod (po), replicationcontroller (rc), deployment (deploy), daemonset (ds), job, replicaset (rs), cloneset (cs)`
+  	pod (po), replicationcontroller (rc), deployment (deploy), daemonset (ds), job, replicaset (rs), cloneset (cs), advanced statefulset (asts)`
 
 	envLong = templates.LongDesc(`
 		Update environment variables on a pod template.
@@ -64,11 +64,14 @@ var (
 		` + envResources)
 
 	envExample = templates.Examples(`
-          # Update deployment 'registry' with a new environment variable
-	  kubectl-kruise set env deployment/registry STORAGE_DIR=/local
+		# Update deployment 'registry' with a new environment variable
+		kubectl-kruise set env deployment/registry STORAGE_DIR=/local
 
-      # Update cloneset 'registry' with a new environment variable
-      kubectl-kruise set env  cloneset/registry STORAGE_DIR=/local`)
+		# Update cloneset 'registry' with a new environment variable
+		kubectl-kruise set env  cloneset/registry STORAGE_DIR=/local
+
+		# Update advanced statefulset 'registry' with a new environment variable
+		kubectl-kruise set env asts/registry STORAGE_DIR=/local`)
 )
 
 // EnvOptions holds values for 'set env' command-lone options
