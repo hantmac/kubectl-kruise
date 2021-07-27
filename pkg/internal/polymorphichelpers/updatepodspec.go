@@ -19,6 +19,7 @@ package polymorphichelpers
 import (
 	"fmt"
 	kruiseappsv1alpha1 "github.com/openkruise/kruise-api/apps/v1alpha1"
+	kruiseappsv1beta1 "github.com/openkruise/kruise-api/apps/v1beta1"
 
 	appsv1 "k8s.io/api/apps/v1"
 	appsv1beta1 "k8s.io/api/apps/v1beta1"
@@ -88,6 +89,10 @@ func updatePodSpecForObject(obj runtime.Object, fn func(*v1.PodSpec) error) (boo
 
 		// CloneSet
 	case *kruiseappsv1alpha1.CloneSet:
+		return true, fn(&t.Spec.Template.Spec)
+
+	// Advanced StatefulSet
+	case *kruiseappsv1beta1.StatefulSet:
 		return true, fn(&t.Spec.Template.Spec)
 
 	default:

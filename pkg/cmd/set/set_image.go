@@ -67,7 +67,7 @@ type SetImageOptions struct {
 
 var (
 	imageResources = `
-  	pod (po), replicationcontroller (rc), deployment (deploy), daemonset (ds), replicaset (rs), cloneset (cs)`
+  	pod (po), replicationcontroller (rc), deployment (deploy), daemonset (ds), replicaset (rs), cloneset (cs), advanced statefulset (asts)`
 
 	imageLong = templates.LongDesc(`
 		Update existing container image(s) of resources.
@@ -82,11 +82,9 @@ var (
 		# Set a cloneset's nginx container image to 'nginx:1.9.1' and its busybox container image to 'busybox'
 		kubectl-kruise set image cloneset/nginx busybox=busybox nginx=nginx:1.9.1
 
-		# Update all deployments' and rc's nginx container's image to 'nginx:1.9.1'
-		kubectl-kruise set image deployments,rc nginx=nginx:1.9.1 --all
+		# Set a asts's nginx container image to 'nginx:1.9.1' and its busybox container image to 'busybox'
+		kubectl-kruise set image asts/nginx busybox=busybox nginx=nginx:1.9.1
 
-		# Update image of all containers of daemonset abc to 'nginx:1.9.1'
-		kubectl-kruise set image daemonset abc *=nginx:1.9.1
 
 		# Print result (in yaml format) of updating nginx container image from local file, without hitting the server
 		kubectl-kruise set image -f path/to/file.yaml nginx=nginx:1.9.1 --local -o yaml`)

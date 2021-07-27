@@ -40,12 +40,15 @@ import (
 )
 
 var (
+	setresourcesResouces = `
+	replicationcontroller (rc), deployment (deploy), daemonset (ds), job, replicaset (rs), statefulset, cloneset (cs), advanced statefulset (asts)`
+
 	resourcesLong = templates.LongDesc(`
 		Specify compute resource requirements (cpu, memory) for any resource that defines a pod template.  If a pod is successfully scheduled, it is guaranteed the amount of resource requested, but may burst up to its specified limits.
 
 		for each compute resource, if a limit is specified and a request is omitted, the request will default to the limit.
 
-		Possible resources include (case insensitive): %s.`)
+		Possible resources include (case insensitive): ` + setresourcesResouces)
 
 	resourcesExample = templates.Examples(`
 		# Set a deployments nginx container cpu limits to "200m" and memory to "512Mi"
@@ -53,6 +56,9 @@ var (
 
 		# Set a cloneset nginx container cpu limits to "200m" and memory to "512Mi" 
 		kubectl-kruise set resources cloneset nginx -c=nginx --limits=cpu=200m,memory=512Mi
+
+		# Set an advanced statefulset nginx container cpu limits to "200m" and memory to "512Mi"
+		kubectl-kruise set resources asts nginx -c=nginx --limits=cpu=200m,memory=512Mi
 
 		# Print the result (in yaml format) of updating nginx container limits from a local, without hitting the server
 		kubectl-kruise set resources -f path/to/file.yaml --limits=cpu=200m,memory=512Mi --local -o yaml`)

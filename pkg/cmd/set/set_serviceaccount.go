@@ -40,7 +40,7 @@ import (
 
 var (
 	serviceaccountResources = `
-	replicationcontroller (rc), deployment (deploy), daemonset (ds), job, replicaset (rs), statefulset, cloneset (cs)`
+	replicationcontroller (rc), deployment (deploy), daemonset (ds), job, replicaset (rs), statefulset, cloneset (cs), advanced statefulset (asts)`
 
 	serviceaccountLong = templates.LongDesc(i18n.T(`
 	Update ServiceAccount of pod template resources.
@@ -54,6 +54,9 @@ var (
 
 	# Set cloneset nginx-cloneset's ServiceAccount to serviceaccount1
 	kubectl-kruise set serviceaccount cloneset nginx-cloneset serviceaccount1
+
+	# Set advanced statefulset nginx-asts's ServiceAccount to serviceaccount1
+	kubectl-kruise set serviceaccount asts nginx-asts serviceaccount
 
 	# Print the result (in yaml format) of updated nginx cloneset with serviceaccount from local file, without hitting apiserver
 	kubectl-kruise set sa -f nginx-cloneset.yaml serviceaccount1 --local --dry-run=client -o yaml
