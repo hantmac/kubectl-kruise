@@ -48,6 +48,9 @@ By now the `rollout undo`, `rollout status`, `rollout history` has been develope
    * [x] kubectl kruise set serviceaccount asts/abc 
    * [x] kubectl kruise set resources asts/abc 
    
+#### kubectl kruise top cloneset [cloneset name] 
+   * [ ] kubectl kruise top cloneset clone/abc
+   
 #### kubectl kruise autoscale SUBCOMMAND [options]
    * [x] kubectl kruise autoscale 
  
