@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	internalclient "github.com/hantmac/kubectl-kruise/pkg/client"
 	"github.com/hantmac/kubectl-kruise/pkg/fetcher"
 	"github.com/spf13/cobra"
