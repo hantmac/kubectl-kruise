@@ -2,7 +2,11 @@ package fetcher
 
 import (
 	"context"
+	"fmt"
 	kruiseappsv1alpha1 "github.com/openkruise/kruise-api/apps/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/klog/v2"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -22,7 +26,7 @@ func GetResourceInCache(ns, name string, obj runtime.Object, cl client.Reader) (
 	return true, nil
 }
 
-func ListResourceInCache(ns string, obj runtime.Object, cl client.Client) error {
+func ListResourceInCache(ns string, obj runtime.Object, cl client.Reader, ls labels.Selector) error {
 	return cl.List(context.TODO(), obj, client.InNamespace(ns))
 }
 
@@ -34,4 +38,21 @@ func GetCloneSetInCache(ns, name string, cl client.Reader) (*kruiseappsv1alpha1.
 	}
 
 	return cs, found, err
+}
+
+func GetPodsOwnedByCloneSet(ns, name string, cr client.Reader) (*corev1.PodList, error) {
+	cs, found, err := GetCloneSetInCache(ns, name, cr)
+	if err != nil || !found {
+		klog.Error(err)
+		return nil, fmt.Errorf("failed to retrieve CloneSet %s: %s", name, err.Error())
+	}
+
+	// List the Pods matching the PodTemplate Labels
+	pods := &corev1.PodList{}
+	err = cr.List(context.TODO(), pods, client.InNamespace(ns), client.MatchingLabels(cs.Spec.Template.Labels))
+	if err != nil || !found {
+		pods = nil
+	}
+
+	return pods, err
 }
