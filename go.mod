@@ -19,7 +19,9 @@ require (
 	k8s.io/client-go v0.21.0
 	k8s.io/component-base v0.21.0
 	k8s.io/klog v1.0.0 // indirect
+	k8s.io/klog/v2 v2.0.0 // indirect
 	k8s.io/kubectl v0.21.0
+	k8s.io/metrics v0.18.6 // indirect
 	sigs.k8s.io/controller-runtime v0.6.3
 	sigs.k8s.io/structured-merge-diff v1.0.1 // indirect
 	sigs.k8s.io/structured-merge-diff/v2 v2.0.1 // indirect

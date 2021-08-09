@@ -7,6 +7,7 @@ import (
 
 	krollout "github.com/hantmac/kubectl-kruise/pkg/cmd/rollout"
 	kset "github.com/hantmac/kubectl-kruise/pkg/cmd/set"
+	ktop "github.com/hantmac/kubectl-kruise/pkg/cmd/top"
 	"github.com/spf13/cobra"
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -33,7 +34,7 @@ import (
 	"k8s.io/kubectl/pkg/cmd/replace"
 	"k8s.io/kubectl/pkg/cmd/scale"
 	"k8s.io/kubectl/pkg/cmd/taint"
-	"k8s.io/kubectl/pkg/cmd/top"
+
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	"k8s.io/kubectl/pkg/cmd/version"
 	"k8s.io/kubectl/pkg/cmd/wait"
@@ -372,7 +373,7 @@ func NewKubectlCommand(in io.Reader, out, err io.Writer) *cobra.Command {
 			Commands: []*cobra.Command{
 				certificates.NewCmdCertificate(f, ioStreams),
 				clusterinfo.NewCmdClusterInfo(f, ioStreams),
-				top.NewCmdTop(f, ioStreams),
+				ktop.NewCmdTop(f, ioStreams),
 				drain.NewCmdCordon(f, ioStreams),
 				drain.NewCmdUncordon(f, ioStreams),
 				drain.NewCmdDrain(f, ioStreams),
